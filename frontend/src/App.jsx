@@ -1,35 +1,77 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 
 function App() {
-  const [todos, setTodos] = useState([
-    { id: 1, text: 'React 학습하기', completed: false },
-    { id: 2, text: 'Vite 설정 확인하기', completed: true },
-  ])
+  const [todos, setTodos] = useState([])
   const [inputValue, setInputValue] = useState('')
+  const API_URL = 'http://localhost:8080/api/todos'
 
-  const addTodo = (e) => {
+  // 백엔드에서 할 일 목록 가져오기
+  const fetchTodos = async () => {
+    try {
+      const response = await fetch(API_URL)
+      const data = await response.json()
+      setTodos(data)
+    } catch (error) {
+      console.error('Error fetching todos:', error)
+    }
+  }
+
+  useEffect(() => {
+    fetchTodos()
+  }, [])
+
+  // 할 일 추가
+  const addTodo = async (e) => {
     e.preventDefault()
     if (inputValue.trim() === '') return
     
     const newTodo = {
-      id: Date.now(),
       text: inputValue,
       completed: false
     }
-    
-    setTodos([...todos, newTodo])
-    setInputValue('')
+
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newTodo)
+      })
+      if (response.ok) {
+        fetchTodos()
+        setInputValue('')
+      }
+    } catch (error) {
+      console.error('Error adding todo:', error)
+    }
   }
 
-  const toggleTodo = (id) => {
-    setTodos(todos.map(todo => 
-      todo.id === id ? { ...todo, completed: !todo.completed } : todo
-    ))
+  // 완료 상태 토글
+  const toggleTodo = async (id) => {
+    try {
+      const response = await fetch(`${API_URL}/${id}`, {
+        method: 'PUT'
+      })
+      if (response.ok) {
+        fetchTodos()
+      }
+    } catch (error) {
+      console.error('Error toggling todo:', error)
+    }
   }
 
-  const deleteTodo = (id) => {
-    setTodos(todos.filter(todo => todo.id !== id))
+  // 할 일 삭제
+  const deleteTodo = async (id) => {
+    try {
+      const response = await fetch(`${API_URL}/${id}`, {
+        method: 'DELETE'
+      })
+      if (response.ok) {
+        fetchTodos()
+      }
+    } catch (error) {
+      console.error('Error deleting todo:', error)
+    }
   }
 
   return (
